@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Raspberry Pi Camera</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background: #f2f2f2;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        button {
+            display: block;
+            width: 90%;
+            max-width: 300px;
+            margin: 10px auto;
+            padding: 12px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        img {
+            width: 100%;
+            height: auto;
+            max-width: 640px;
+            margin-top: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+
+        h2 {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        #photoCounter {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Raspberry Pi Camera Live Stream</h1>
+
+    <button onclick="startCamera()">Start Camera</button>
+    <button onclick="stopCamera()">Stop Camera</button>
+    <button onclick="startPhotoCapture()">Capture 1000 Photos</button>
+    <button onclick="killServer()">Kill Server</button>
+
+    <img id="stream" src="" alt="Live Stream" />
+
+    <h2>Photos Captured: <span id="photoCounter">0</span> / 1000</h2>
+
+    <script>
+        function startCamera() {
+            fetch('/start_camera')
+                .then(() => {
+                    document.getElementById("stream").src = "/video_feed";
+                });
+        }
+
+        function stopCamera() {
+            fetch('/stop_camera')
+                .then(() => {
+                    document.getElementById("stream").src = "";
+                });
+        }
+
+        function startPhotoCapture() {
+            document.getElementById("photoCounter").innerText = "0";
+            const eventSource = new EventSource('/capture_photos');
+
+            eventSource.onmessage = function(event) {
+                document.getElementById("photoCounter").innerText = event.data;
+                if (parseInt(event.data) >= 1000) {
+                    eventSource.close();
+                    alert("1000 photos captured!");
+                }
+            };
+
+            eventSource.onerror = function() {
+                eventSource.close();
+                alert("Error during capture.");
+            };
+        }
+
+        function killServer() {
+            fetch('/shutdown')
+                .then(response => response.text())
+                .then(msg => alert(msg))
+                .finally(() => {
+                    document.getElementById("stream").src = "";
+                });
+        }
+    </script>
+</body>
+</html>
